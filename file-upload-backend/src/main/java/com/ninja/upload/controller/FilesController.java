@@ -1,14 +1,23 @@
 package com.ninja.upload.controller;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder;
 
 import com.ninja.upload.message.ResponseMessage;
+import com.ninja.upload.model.FileInfo;
 import com.ninja.upload.service.FilesStorageService;
 
 @Controller
@@ -30,4 +39,34 @@ public class FilesController {
 			return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(new ResponseMessage(message));
 		}
 	}
+	
+	@GetMapping("/files")
+	public ResponseEntity<List<FileInfo>> getListFiles() {
+		List<FileInfo> fileInfos = storageService.loadAll().map(path -> {
+			String fileName = path.getFileName().toString();
+			String url = MvcUriComponentsBuilder
+					.fromMethodName(FilesController.class, "getFile", path.getFileName().toString()).build().toString();
+			
+			System.out.println("File Name : " + fileName + "  ======== " + " URL : " + url + " getListFiles");
+			
+			return new FileInfo(fileName, url);
+		}).collect(Collectors.toList());
+		
+		return ResponseEntity.status(HttpStatus.OK).body(fileInfos);
+	}
+	
+	/**
+	 * 
+	 * We have @Path expression to /files/{filename : .+}. 
+	 * The .+ is a regular expression that will match any stream of characters after /files.
+	 * So, the GET /files/work/citys.txt request would be routed to getFile().
+	 */
+	@GetMapping("/files/{filename:.+}")
+	public ResponseEntity<Resource> getFile(@PathVariable String filename) {
+		Resource file = storageService.load(filename);	
+		return ResponseEntity.ok()
+				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment: filename=\"" + file.getFilename() + "\"").body(file);
+	}
+	
+	
 }
