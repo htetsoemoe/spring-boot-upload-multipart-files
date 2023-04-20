@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -68,5 +69,25 @@ public class FilesController {
 				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment: filename=\"" + file.getFilename() + "\"").body(file);
 	}
 	
+	@DeleteMapping("/files/{filename:.+}")
+	public ResponseEntity<ResponseMessage> deleteFile(@PathVariable String filename) {
+		String message = "";
+		
+		try {
+			boolean ifFileDeleted = storageService.delete(filename);
+			
+			if (ifFileDeleted) {
+				message = String.format("Delete the file successfully : %s", filename);
+				return ResponseEntity.status(HttpStatus.OK).body(new ResponseMessage(message));
+			}
+			
+			message = "The file does not exist!";
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseMessage(message));
+			
+		} catch (Exception e) {
+			message = String.format("Could not delete the file : %s. Error : %s", filename, e.getMessage());
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ResponseMessage(message));
+		}
+	}
 	
 }

@@ -46,7 +46,7 @@ public class FilesStorageServiceImpl implements FilesStorageService{
 			
 			Path file = root.resolve(filename);
 			Resource resource = new UrlResource(file.toUri());
-			
+
 			if (resource.exists() || resource.isReadable()) {
 				return resource;
 			} else {
@@ -60,16 +60,26 @@ public class FilesStorageServiceImpl implements FilesStorageService{
 	}
 
 	@Override
-	public void deleteAll() {
-		FileSystemUtils.deleteRecursively(root.toFile());
-	}
-
-	@Override
 	public Stream<Path> loadAll() {
 		try {
 			return Files.walk(this.root, 1).filter(path -> !path.equals(this.root)).map(this.root::relativize);
 		} catch (IOException e) {
 			throw new RuntimeException("Could not load the files!");
+		}
+	}
+	
+	@Override
+	public void deleteAll() {
+		FileSystemUtils.deleteRecursively(root.toFile());
+	}
+
+	@Override
+	public boolean delete(String filename) {
+		try {
+			Path file = root.resolve(filename);
+			return Files.deleteIfExists(file);
+		} catch (IOException e) {
+			throw new RuntimeException("Error : " + e.getMessage());
 		}
 	}
 
